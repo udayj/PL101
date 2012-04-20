@@ -23,13 +23,27 @@ var compile = function (musexpr) {
         {
             if(expr.tag=='note')
             {
-                arr.push({tag:'note', pitch:expr.pitch, start:time,dur:expr.dur});
+                arr.push({tag:'note', pitch:convertPitch(expr.pitch), start:time,dur:expr.dur});
                 time+=expr.dur;
             }
             else if(expr.tag=='rest')
             {
                 arr.push({tag:'rest', start:time,dur:expr.dur});
                 time+=expr.dur;
+            }
+            else if(expr.tag=='par')
+            {
+                var temp=time;
+                internalCompiler(expr.left);
+                time=temp;
+                internalCompiler(expr.right);
+            }
+            else if(expr.tag=='repeat')
+            {
+                for(i=0;i<expr.count;i++)
+                {
+                    internalCompiler(expr.section);
+                }
             }
             else
             {
@@ -42,6 +56,13 @@ var compile = function (musexpr) {
     
 };
 
+function convertPitch(pitch)
+{
+    var dict={'A':9,'E':4,'C':0,'B':11,'D':2,'F':5,'G':7};
+    var numDict={'0':0,'1':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8};
+    var ret=12+12*dict[pitch[0].toUpperCase()]+numDict[pitch[1]];
+    return ret;
+}
 var melody_mus = 
     { tag: 'seq',
       left: 
