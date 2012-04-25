@@ -1,0 +1,39 @@
+start =
+    expression
+    
+validchar
+    = [0-9a-zA-Z_?!+\-=@#$%^&*/.]
+
+validcharExtra
+    = [0-9a-zA-Z_?!+\);-=@#$%^&*/.(]
+
+atom =
+    chars:validchar+
+        { return chars.join(""); }
+
+
+expression = token:atom anything* { return token;}/
+	token:listOfExpr anything* { return token;}/
+        token:quotedExpression anything* { return token;}
+
+anything =
+";;" anythingMixed*
+{ return null;}
+
+anythingMixed= whiteSpace / validcharExtra
+
+
+quotedExpression=whiteSpace* "'" quotedExpr:expression whiteSpace*
+{ return ["quote",quotedExpr];}       
+
+listOfExpr = whiteSpace* "(" whiteSpace* first:expression rest:SpaceExpression* whiteSpace* ")" whiteSpace*
+             { returnValue=[];
+             returnValue.push(first);
+             if(rest!=null)
+                returnValue=returnValue.concat(rest);
+             return returnValue;}
+    
+SpaceExpression = whiteSpace* rest:expression
+{ return rest;}
+
+whiteSpace=  " " / "\t" / "\n"
