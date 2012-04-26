@@ -5,20 +5,20 @@ validchar
     = [0-9a-zA-Z_?!+\-=@#$%^&*/.]
 
 validcharExtra
-    = [0-9a-zA-Z_?!+\);-=@#$%^&*/.(]
+    = [0-9a-zA-Z_?!+\);-=@#$%^&*/(.]
 
 atom =
     chars:validchar+
         { return chars.join(""); }
 
-
-expression = token:atom anything* { return token;}/
-	token:listOfExpr anything* { return token;}/
-        token:quotedExpression anything* { return token;}
-
 anything =
-";;" anythingMixed*
-{ return null;}
+";;" [^\n]* whiteSpace*
+
+expression = token:atom anything? { return token;}/
+	token:listOfExpr anything? { return token;}/
+        token:quotedExpression anything? { return token;}
+
+
 
 anythingMixed= whiteSpace / validcharExtra
 
@@ -36,4 +36,4 @@ listOfExpr = whiteSpace* "(" whiteSpace* first:expression rest:SpaceExpression* 
 SpaceExpression = whiteSpace* rest:expression
 { return rest;}
 
-whiteSpace=  " " / "\t" / "\n"
+whiteSpace=  " " / "\t" / "\n" / "\r"
