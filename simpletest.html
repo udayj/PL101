@@ -1,0 +1,205 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Mocha Tests</title>
+  <link rel="stylesheet"
+    href="http://nathansuniversity.com/css/mocha.css" />
+  <script src=
+    "http://nathansuniversity.com/js/jquery-1.7.1.min.js">
+  </script>
+  <script src=
+    "http://nathansuniversity.com/js/chai.js">
+  </script>
+<script src=
+    "scheem_parser.js">
+  </script>
+  <script src="http://nathansuniversity.com/js/mocha.js">
+  </script>
+  <script>mocha.setup('tdd')</script>
+  <script>
+var expect = chai.expect;    
+var assert = chai.assert;
+
+// A half-baked implementation of evalScheem
+
+var evalScheem = function (expr, env) {
+    // Numbers evaluate to themselves
+    if (typeof expr === 'number') {
+        return expr;
+    }
+    // Strings are variable references
+    if (typeof expr === 'string') {
+        return env[expr];
+    }
+    // Look at head of list for operation
+    switch (expr[0]) {
+        case '+':
+            return evalScheem(expr[1], env) +
+                   evalScheem(expr[2], env);
+        case '-':
+            return evalScheem(expr[1], env) -
+                   evalScheem(expr[2], env);
+        case '*':
+            return evalScheem(expr[1], env) *
+                   evalScheem(expr[2], env);
+        case '/':
+            return evalScheem(expr[1], env) /
+                   evalScheem(expr[2], env);
+        case 'begin':
+            {
+                var ret=0;
+                for(i=1;i<expr.length;i++)
+                {
+                    ret=evalScheem(expr[i],env);
+                }
+                return ret;
+            }
+        case 'quote':
+            return expr[1];
+        case '=':
+            {
+                var eq=(evalScheem(expr[1],env)===evalScheem(expr[2],env));
+                if(eq)
+                {
+                    return '#t';
+                }
+                else return '#f';
+            }
+         case '<':
+            {
+                var eq=(evalScheem(expr[1],env)<evalScheem(expr[2],env));
+                if(eq)
+                {
+                    return '#t';
+                }
+                else return '#f';
+            }
+        case 'cons':{
+            var list=[evalScheem(expr[1])];
+            list=list.concat(evalScheem(expr[2]));
+            return list;}
+        case 'car':
+            return expr[1][0];
+        case 'cdr':
+            var list=expr[1];
+            list.splice(0,1);
+            return list;
+        case 'if':
+            var eq=evalScheem(expr[1],env);
+            if(eq=='#t')
+            {
+                return evalScheem(expr[2],env);
+            }
+            else
+                return evalScheem(expr[3],env);
+                                    
+    }
+};
+
+
+
+// Some unit tests
+if (typeof module !== 'undefined') {
+    // In Node.js load required modules
+    var assert = require('chai').assert;
+    var PEG = require('pegjs');
+    var fs = require('fs');
+    var evalScheem = require('../scheem_interpreter.js').evalScheem;
+    var parse = PEG.buildParser(fs.readFileSync(
+        '/home/uday/code/PL101/grammar.peg', 'utf-8')).parse;
+} else {
+    // In browser assume loaded by <script>
+    var parse = SCHEEM.parse;
+    var assert = chai.assert;
+}
+
+var evalScheemString=function (expression,env) {
+    var parsedExpression=SCHEEM.parse(expression);
+    alert(parsedExpression);
+    var ret=evalScheem(parsedExpression,{'v':3});
+    return ret;
+};
+
+suite('quote', function() {
+    test('a number', function() {
+        assert.deepEqual(
+            evalScheem(['quote', 3], {}),
+            3
+        );
+    });
+    test('an atom', function() {
+        assert.deepEqual(
+            evalScheem(['quote', 'dog'], {}),
+            'dog'
+        );
+    });
+    test('a list', function() {
+        assert.deepEqual(
+            evalScheem(['quote', [1, 2, 3]], {}),
+            [1, 2, 3]
+        );
+    });
+});
+
+suite('+', function() {
+    test('two numbers', function() {
+        assert.deepEqual(
+            evalScheem(['+', 3,3], {}),
+            6
+        );
+    });
+
+});
+
+suite('cons', function() {
+    test('two numbers', function() {
+        assert.deepEqual(
+            evalScheem(['cons', 3,3], {}),
+            [3, 3]
+        );
+    });
+
+});
+
+suite('consFromParse', function() {
+    test('two numbers after parse', function() {
+        assert.deepEqual(
+            evalScheemString('(cons 3 3)',{}),
+            [3, 3]
+        );
+    });
+
+});
+
+suite('parse', function() {
+    test('a number', function() {
+        assert.deepEqual(
+            SCHEEM.parse('42'),
+            42
+        );
+    });
+    test('a variable', function() {
+        assert.deepEqual(
+            SCHEEM.parse('x'),
+            'x'
+        );
+    });
+test('cons', function() {
+        assert.deepEqual(
+            SCHEEM.parse('(cons 3 3)'),
+            ['cons',3, 3]
+        );
+    });
+});
+  </script>
+  <script>
+    $(function(){
+      mocha.run();
+    });
+  </script>
+</head>
+<body>
+  <div id="mocha"></div>
+</body>
+</html>
+
