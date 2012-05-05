@@ -1,0 +1,129 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Scheem Live Demo</title>
+  <script src=
+    "http://nathansuniversity.com/js/jquery-1.7.1.min.js">
+  </script>
+  <script>
+var evalScheem = function (expr, env) {
+    // Numbers evaluate to themselves
+    if (typeof expr === 'number') {
+        return expr;
+    }
+    // Strings are variable references
+    if (typeof expr === 'string') {
+        return env[expr];
+    }
+    // Look at head of list for operation
+    switch (expr[0]) {
+        case '+':
+            return evalScheem(expr[1], env) +
+                   evalScheem(expr[2], env);
+        case '-':
+            return evalScheem(expr[1], env) -
+                   evalScheem(expr[2], env);
+        case '*':
+            return evalScheem(expr[1], env) *
+                   evalScheem(expr[2], env);
+        case '/':
+            return evalScheem(expr[1], env) /
+                   evalScheem(expr[2], env);
+        case 'begin':
+            {
+                var ret=0;
+                for(i=1;i<expr.length;i++)
+                {
+                    ret=evalScheem(expr[i],env);
+                }
+                return ret;
+            }
+        case 'quote':
+            return expr[1];
+        case '=':
+            {
+                var eq=(evalScheem(expr[1],env)===evalScheem(expr[2],env));
+                if(eq)
+                {
+                    return '#t';
+                }
+                else return '#f';
+            }
+         case '<':
+            {
+                var eq=(evalScheem(expr[1],env)<evalScheem(expr[2],env));
+                if(eq)
+                {
+                    return '#t';
+                }
+                else return '#f';
+            }
+        case 'cons':{
+            var list=[evalScheem(expr[1])];
+            list=list.concat(evalScheem(expr[2]));
+            return list;}
+        case 'car':
+            return expr[1][0];
+        case 'cdr':
+            var list=expr[1];
+            list.splice(0,1);
+            return list;
+        case 'if':
+            var eq=evalScheem(expr[1],env);
+            if(eq=='#t')
+            {
+                return evalScheem(expr[2],env);
+            }
+            else
+                return evalScheem(expr[3],env);
+                                    
+    }
+};
+
+
+</script>
+  <script src="scheem_parser.js"></script>
+</head>
+<body>
+
+<textarea id="input" style="width:800px; height:300px;">
+(+ 1 2)</textarea>
+
+<input id="submitbutton" type="button" value="Run" />
+
+<div id="console" class="console" style="border:solid 1px;">
+<p>This is where output goes.</p>
+</div>
+
+<script>
+  // Utility function to log messages
+  var log_console = function(msg) {
+      $('#console').append('<p>' + msg + '</p>');
+  };
+  // After page load
+  $(function() {
+    $('#submitbutton').click(function() {
+        var user_text = $('#input').val();
+        $('#console').html(''); // clear console
+        log_console('Your input was: "' + user_text + '"');
+        try {
+            var parsed = SCHEEM.parse(user_text);
+            log_console('Parsed: ' + JSON.stringify(parsed));
+            try {
+                var result = evalScheem(parsed, {});
+                log_console('Result: ' + JSON.stringify(result));
+            }
+            catch(e) {
+                log_console('Eval Error: ' + e);
+            }
+        }
+        catch(e) {
+            log_console('Parse Error: ' + e);
+        }
+    });
+  });
+</script>
+
+</body>
+</html>
+
