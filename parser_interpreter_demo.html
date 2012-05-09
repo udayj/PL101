@@ -13,7 +13,7 @@ var evalScheem = function (expr, env) {
     }
     // Strings are variable references
     if (typeof expr === 'string') {
-        return env[expr];
+        return lookup(env,expr);
     }
     // Look at head of list for operation
     switch (expr[0]) {
@@ -68,6 +68,9 @@ var evalScheem = function (expr, env) {
             var list=expr[1];
             list.splice(0,1);
             return list;
+        case 'set!':
+            update(env,expr[1],evalScheem(expr[2],env));
+            return 0;
         case 'if':
             var eq=evalScheem(expr[1],env);
             if(eq=='#t')
@@ -76,11 +79,57 @@ var evalScheem = function (expr, env) {
             }
             else
                 return evalScheem(expr[3],env);
+         case 'let-one':
+            var new_env={};
+            new_env.bindings={};
+            new_env.bindings[expr[1]]=evalScheem(expr[2],env);
+            new_env.outer=env;
+            return evalScheem(expr[3],new_env);
+        case 'define':
+            if(env.bindings=='undefined')
+            {
+                env.bindings={};
+                env.outer={};
+            }
+            env.bindings[expr[1]]=evalScheem(expr[2],env);
+            return 0;
+        case 'lambda-one':
+            return function(x){
+            var new_env={};
+            new_env.bindings={};
+            new_env.bindings[expr[1]]=x;
+            new_env.outer=env;
+            return evalScheem(expr[2],new_env);
+            };
+        
+        default:
+            // Simple application
+            var func = evalScheem(expr[0], env);
+            var arg = evalScheem(expr[1], env);
+            return func(arg);
                                     
     }
 };
 
+var lookup = function (env, v) {
+    if (!(env.hasOwnProperty('bindings')))
+        throw new Error(v + " not found");
+    if (env.bindings.hasOwnProperty(v))
+        return env.bindings[v];
+    return lookup(env.outer, v);
+};
 
+function update(env,v,val)
+{
+    if(env!=={} && env.bindings[v]!=='undefined')
+    {
+        env.bindings[v]=val;
+    }
+    else if(env!=={} && env.outer!=={})
+    {
+        update(env.outer,v,val);
+    }
+}
 </script>
   <script src="scheem_parser.js"></script>
 </head>
@@ -110,7 +159,7 @@ var evalScheem = function (expr, env) {
             var parsed = SCHEEM.parse(user_text);
             log_console('Parsed: ' + JSON.stringify(parsed));
             try {
-                var result = evalScheem(parsed, {});
+                var result = evalScheem(parsed, {bindings:{},outer:{}});
                 log_console('Result: ' + JSON.stringify(result));
             }
             catch(e) {
